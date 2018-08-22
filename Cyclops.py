@@ -109,7 +109,7 @@ img = dlib.load_rgb_image(filename)
 dets = detector(img, 1)
 print("Number of faces detected: {}".format(len(dets)))
 fac = 4
-for k, d in enumerate(dets[0:1]):
+for k, d in enumerate(dets):
     # Get the landmarks/parts for the face in box d.
     shape = predictor(img, d)
     X = shape_to_np(shape)    
@@ -122,17 +122,16 @@ for k, d in enumerate(dets[0:1]):
     imgbox = scipy.misc.imresize(imgbox, (imgbox.shape[0]*fac, imgbox.shape[1]*fac))
     X = np.array(X*fac, dtype=np.float32)
 
-    plt.subplot(131)
+    plt.subplot(221)
     plt.imshow(imgbox)
     mask = getBothEyeMask(X)
     #mask = getEyeMask(X, 0) + getEyeMask(X, 1)
 
-    plt.subplot(132)
+    plt.subplot(222)
     res = np.array(imgbox)
     res = fillmask(res, mask)
     plt.imshow(res)
     
-    plt.subplot(133)
     #res = inpaint.inpaint_biharmonic(imgbox, mask, multichannel=True)
     res = cv.inpaint(imgbox, mask, 3, cv.INPAINT_TELEA)
 
@@ -143,23 +142,23 @@ for k, d in enumerate(dets[0:1]):
     masksource = getEyeMask(X, 0)
     maskdest = getEyeMask(X, 0, offset[0], offset[1])
 
+    imgbox = np.array(imgbox, dtype=float)
+    res = np.array(res, dtype=float)
     solve_poisson(imgbox, res, masksource, maskdest)
+    res = np.round(res)
+    res = np.array(res, dtype=np.uint8)
+    plt.subplot(224)
+    plt.imshow(res)
 
-    """
-    eyebefore = eyebefore.flatten()
-    eyeafter = getEyeMask(X, 0, offset[0], offset[1]).flatten()
+    plt.subplot(223)
+    masksource = masksource.flatten()
+    maskdest = maskdest.flatten()
     for c in range(3):
         resc = res[:, :, c]
         resc = resc.flatten()
         resb = imgbox[:, :, c].flatten()
-        resc[eyeafter == 1] = resb[eyebefore == 1]
+        resc[maskdest == 1] = resb[masksource == 1]
         res[:, :, c] = np.reshape(resc, (res.shape[0], res.shape[1]))
-    #res = fillmask(res, eye0)
-    #scipy.misc.imsave("mask.png", eyebefore)
-
-    #res = blend(res, res, mask, eyebefore)
-    plt.imshow(mask)
-    """
     plt.imshow(res)
 
     plt.show()

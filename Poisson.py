@@ -43,14 +43,14 @@ def solve_poisson(source, dest, masksource, maskdest):
             nbY2 = m2['Y'] + dy
             idx = np.arange(N)
             # Step 1: Figure out how many neighbors there are in the selected region
-            idx = idx[m1['mask'][nbY1, nbX1] == 1]
+            idx = idx[m1['mask'][nbY1, nbX1] > 0]
             # Update the neighbor count at each pixel accordingly
             I = np.concatenate((I, idx))
             J = np.concatenate((J, idx))
             V = np.concatenate((V, np.ones(idx.size)))
 
             # Step 2: Figure out the value of the laplacian at the source and add to b
-            b[idx, :] += source[nbY1[idx], nbX1[idx], :] - source[m1['Y'][idx], m1['X'][idx], :]
+            b[idx, :] += source[m1['Y'][idx], m1['X'][idx], :] - source[nbY1[idx], nbX1[idx], :]
 
             # Step 3: Figure out which neighbor pixels are on the boundary and which
             # are in the interior
