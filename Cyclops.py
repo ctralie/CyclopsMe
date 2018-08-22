@@ -94,7 +94,8 @@ keypts = np.concatenate((np.arange(17), np.arange(30, 36), np.arange(48, 68)))
 eyebottomidx = 27
 
 predictor_path = "shape_predictor_68_face_landmarks.dat"
-filename = "faces/2009_004587.jpg"
+#filename = "faces/2009_004587.jpg"
+filename = "faces/2008_002506.jpg"
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(predictor_path)
@@ -117,6 +118,7 @@ for k, d in enumerate(dets):
     X[:, 1] -= bounds[2]
 
     imgbox = img[bounds[2]:bounds[3], bounds[0]:bounds[1], :]
+    shapeorig = imgbox.shape
     imgbox = scipy.misc.imresize(imgbox, (imgbox.shape[0]*fac, imgbox.shape[1]*fac))
     X = np.array(X*fac, dtype=float)
 
@@ -160,4 +162,11 @@ for k, d in enumerate(dets):
         eyesblank[:, :, c] = np.reshape(resc, (eyesblank.shape[0], eyesblank.shape[1]))
     plt.imshow(eyesblank)
 
+    cyclops = scipy.misc.imresize(cyclops, shapeorig)
+    img[bounds[2]:bounds[3], bounds[0]:bounds[1], :] = cyclops
+
+
     plt.show()
+
+plt.imshow(img)
+plt.show()
