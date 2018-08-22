@@ -6,8 +6,6 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 import scipy.misc
-from skimage.restoration import inpaint
-import cv2 as cv
 from scipy.spatial import ConvexHull
 import scipy.misc
 from Poisson import *
@@ -108,7 +106,7 @@ img = dlib.load_rgb_image(filename)
 # will make everything bigger and allow us to detect more faces.
 dets = detector(img, 1)
 print("Number of faces detected: {}".format(len(dets)))
-fac = 4
+fac = 3
 for k, d in enumerate(dets):
     # Get the landmarks/parts for the face in box d.
     shape = predictor(img, d)
@@ -120,7 +118,7 @@ for k, d in enumerate(dets):
 
     imgbox = img[bounds[2]:bounds[3], bounds[0]:bounds[1], :]
     imgbox = scipy.misc.imresize(imgbox, (imgbox.shape[0]*fac, imgbox.shape[1]*fac))
-    X = np.array(X*fac, dtype=np.float32)
+    X = np.array(X*fac, dtype=float)
 
     plt.subplot(221)
     plt.imshow(imgbox)
@@ -128,12 +126,14 @@ for k, d in enumerate(dets):
     #mask = getEyeMask(X, 0) + getEyeMask(X, 1)
 
     plt.subplot(222)
-    res = np.array(imgbox)
-    res = fillmask(res, mask)
-    plt.imshow(res)
+    eyesblack = np.array(imgbox)
+    eyesblack = fillmask(eyesblack, mask)
+    plt.imshow(eyesblack)
     
-    #res = inpaint.inpaint_biharmonic(imgbox, mask, multichannel=True)
-    res = cv.inpaint(imgbox, mask, 3, cv.INPAINT_TELEA)
+    imgbox = np.array(imgbox, dtype=float)
+    eyesblack = np.array(eyesblack, dtype=float)
+    eyesblank = np.array(imgbox)
+    solve_poisson(eyesblack, eyesblank, mask, mask)
 
     # Move left eye to top of nose
     offset = 1.0*(X[27, :] - np.mean(X[[37, 38, 40, 41], :], 0))
@@ -142,23 +142,22 @@ for k, d in enumerate(dets):
     masksource = getEyeMask(X, 0)
     maskdest = getEyeMask(X, 0, offset[0], offset[1])
 
-    imgbox = np.array(imgbox, dtype=float)
-    res = np.array(res, dtype=float)
-    solve_poisson(imgbox, res, masksource, maskdest)
-    res = np.round(res)
-    res = np.array(res, dtype=np.uint8)
+    cyclops = np.array(eyesblank)
+    solve_poisson(imgbox, cyclops, masksource, maskdest)
+    cyclops = np.array(np.round(cyclops), dtype=np.uint8)
     plt.subplot(224)
-    plt.imshow(res)
+    plt.imshow(cyclops)
 
     plt.subplot(223)
+    eyesblank = np.array(eyesblank, dtype=np.uint8)
     masksource = masksource.flatten()
     maskdest = maskdest.flatten()
     for c in range(3):
-        resc = res[:, :, c]
+        resc = eyesblank[:, :, c]
         resc = resc.flatten()
         resb = imgbox[:, :, c].flatten()
         resc[maskdest == 1] = resb[masksource == 1]
-        res[:, :, c] = np.reshape(resc, (res.shape[0], res.shape[1]))
-    plt.imshow(res)
+        eyesblank[:, :, c] = np.reshape(resc, (eyesblank.shape[0], eyesblank.shape[1]))
+    plt.imshow(eyesblank)
 
     plt.show()
